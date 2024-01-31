@@ -14,12 +14,12 @@ load_dotenv()
 genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
 
 def pdf_text(docs):
-    text=""
+    text = ""
     for pdf in docs:
-        pdf_reader= PdfReader(pdf)
+        pdf_reader = PdfReader(pdf)
         for page in pdf_reader.pages:
-            text+= page.extract_text()
-    return  text
+            text += page.extract_text()
+    return text
 
 def text_chunks(text):
     text_splitter = RecursiveCharacterTextSplitter(chunk_size=10000, chunk_overlap=1000)
@@ -27,7 +27,7 @@ def text_chunks(text):
     return chunks
 
 def vector_store(text_chunks):
-    embeddings = GoogleGenerativeAIEmbeddings(model = "models/embedding-001")
+    embeddings = GoogleGenerativeAIEmbeddings(model="models/embedding-001")
     vector_store = FAISS.from_texts(text_chunks, embedding=embeddings)
     vector_store.save_local("faiss_index")
 
@@ -40,23 +40,36 @@ def get_conversational_chain():
 
     Answer:
     """
-    model = ChatGoogleGenerativeAI(model="gemini-pro",temperature=0.3)
-    prompt = PromptTemplate(template = prompt_template, input_variables = ["context", "question"])
+    model = ChatGoogleGenerativeAI(model="gemini-pro", temperature=0.3)
+    prompt = PromptTemplate(template=prompt_template, input_variables=["context", "question"])
     chain = load_qa_chain(model, chain_type="stuff", prompt=prompt)
     return chain
 
 def user_input(user_question):
-    embeddings = GoogleGenerativeAIEmbeddings(model = "models/embedding-001")
+    embeddings = GoogleGenerativeAIEmbeddings(model="models/embedding-001")
     new_db = FAISS.load_local("faiss_index", embeddings)
     docs = new_db.similarity_search(user_question)
     chain = get_conversational_chain()
-    response = chain({"input_documents":docs, "question": user_question}, return_only_outputs=True)
+    response = chain({"input_documents": docs, "question": user_question}, return_only_outputs=True)
     print(response)
-    st.write("Reply: ", response["output_text"])
+
+    st.session_state.pdf_response = response["output_text"]
+
+    st.write("Reply from PDF content:", st.session_state.pdf_response)
+
+    st.write("Do you want me to search beyond the scope of contents provided? If yes, click yes")
+    yes_button = st.button("Yes")
+
+    if yes_button:
+        model = genai.GenerativeModel("gemini-pro")
+        new_response = model.generate_content(user_question).text
+        st.session_state.broader_search_response = new_response
+        print(new_response)
+        st.write("Reply from broader search:", st.session_state.broader_search_response)
 
 def main():
     st.set_page_config("Chat with PDF")
-    st.header("Chat with PDF using Gemini💁")
+    st.header("Chat with PDF using Gemini")
 
     user_question = st.text_input("Ask Questions from the PDFs")
 
