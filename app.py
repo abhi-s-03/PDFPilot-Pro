@@ -45,6 +45,12 @@ def get_conversational_chain():
     chain = load_qa_chain(model, chain_type="stuff", prompt=prompt)
     return chain
 
+def more_search(user_question):
+    model = genai.GenerativeModel("gemini-pro")
+    new_response = model.generate_content(user_question).text
+    print(new_response)
+    st.write("Reply:", new_response)   
+
 def user_input(user_question):
     embeddings = GoogleGenerativeAIEmbeddings(model="models/embedding-001")
     new_db = FAISS.load_local("faiss_index", embeddings)
@@ -52,29 +58,25 @@ def user_input(user_question):
     chain = get_conversational_chain()
     response = chain({"input_documents": docs, "question": user_question}, return_only_outputs=True)
     print(response)
-
-    st.session_state.pdf_response = response["output_text"]
-
-    st.write("Reply from PDF content:", st.session_state.pdf_response)
-
-    st.write("Do you want me to search beyond the scope of contents provided? If yes, click yes")
-    yes_button = st.button("Yes")
-
-    if yes_button:
-        model = genai.GenerativeModel("gemini-pro")
-        new_response = model.generate_content(user_question).text
-        st.session_state.broader_search_response = new_response
-        print(new_response)
-        st.write("Reply from broader search:", st.session_state.broader_search_response)
+    st.write("Reply from PDF content:", response["output_text"])    
+    with st.expander("Click to expand and copy"):
+        st.code(response["output_text"], language="text")  # Display with copy icon
 
 def main():
     st.set_page_config("Chat with PDF")
     st.header("Chat with PDF using Gemini")
-
     user_question = st.text_input("Ask Questions from the PDFs")
-
+    flag=0
     if user_question:
         user_input(user_question)
+        flag=1
+        
+    if flag==1:        
+        st.write("Do you want to search beyond the PDF content?")
+        additional_search = st.button("yes")
+        if additional_search:
+            more_search(user_question)
+        flag=0
 
     with st.sidebar:
         st.title("Menu:")
