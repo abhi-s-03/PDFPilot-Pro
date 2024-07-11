@@ -1,10 +1,9 @@
 import streamlit as st
 from PyPDF2 import PdfReader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain_google_genai import GoogleGenerativeAIEmbeddings
+from langchain_google_genai import GoogleGenerativeAIEmbeddings, ChatGoogleGenerativeAI
 import google.generativeai as genai
-from langchain.vectorstores import FAISS
-from langchain_google_genai import ChatGoogleGenerativeAI
+from langchain_community.vectorstores import FAISS
 from langchain.chains.question_answering import load_qa_chain
 from langchain.prompts import PromptTemplate
 from dotenv import load_dotenv
@@ -33,11 +32,13 @@ def vector_store(text_chunks):
 
 def get_conversational_chain():
     prompt_template = """
-    Answer the question as detailed as possible from the provided context, make sure to provide all the details, if the answer is not in
-    provided context just say, "answer is not available in the context", don't provide the wrong answer\n\n
-    Context:\n {context}?\n
-    Question: \n{question}\n
-
+    Answer the question as detailed as possible from the provided context.
+    Make sure to provide all the details. If the answer is not in the provided context,
+    just say, "Answer is not available in the context." Don't provide a wrong answer.
+    Context:
+    {context}
+    Question:
+    {question}
     Answer:
     """
     model = ChatGoogleGenerativeAI(model="gemini-pro", temperature=0.3)
@@ -48,45 +49,46 @@ def get_conversational_chain():
 def more_search(user_question):
     model = genai.GenerativeModel("gemini-pro")
     new_response = model.generate_content(user_question).text
-    print(new_response)
-    st.write("Reply:", new_response)   
+    st.code(new_response, language="text")
 
 def user_input(user_question):
-    embeddings = GoogleGenerativeAIEmbeddings(model="models/embedding-001")
-    new_db = FAISS.load_local("faiss_index", embeddings)
-    docs = new_db.similarity_search(user_question)
-    chain = get_conversational_chain()
-    response = chain({"input_documents": docs, "question": user_question}, return_only_outputs=True)
-    print(response)
-    st.write("Reply from PDF content:", response["output_text"])    
-    with st.expander("Click to expand and copy"):
-        st.code(response["output_text"], language="text")  # Display with copy icon
+    try:
+        embeddings = GoogleGenerativeAIEmbeddings(model="models/embedding-001")
+        new_db = FAISS.load_local("faiss_index", embeddings, allow_dangerous_deserialization=True)
+        docs = new_db.similarity_search(user_question)
+        chain = get_conversational_chain()
+        response = chain.invoke({"input_documents": docs, "question": user_question}, return_only_outputs=True)
+        st.session_state['pdf_response'] = response["output_text"]
+    except Exception as e:
+        st.error(f"An error occurred: {str(e)}")
 
 def main():
     st.set_page_config("Chat with PDF")
-    st.header("Chat with PDF using Gemini")
-    user_question = st.text_input("Ask Questions from the PDFs")
-    flag=0
-    if user_question:
-        user_input(user_question)
-        flag=1
-        
-    if flag==1:        
-        st.write("Do you want to search beyond the PDF content?")
-        additional_search = st.button("yes")
-        if additional_search:
-            more_search(user_question)
-        flag=0
+    st.header("Chat with PDFs using PDFPilot-Pro")
 
     with st.sidebar:
         st.title("Menu:")
         docs = st.file_uploader("Upload your PDF Files and Click on the Submit Button", accept_multiple_files=True)
         if st.button("Submit"):
-            with st.spinner("Processing..."):
-                raw_text = pdf_text(docs)
-                text_chunk = text_chunks(raw_text)
-                vector_store(text_chunk)
-                st.success("Done")
+            if docs:
+                with st.spinner("Processing..."):
+                    raw_text = pdf_text(docs)
+                    text_chunk = text_chunks(raw_text)
+                    vector_store(text_chunk)
+                    st.success("PDFs processed successfully!")
+            else:
+                st.warning("Please upload PDF files before submitting.")
+
+    user_question = st.text_input("Ask Questions from the PDFs")
+    if user_question:
+        st.subheader("Response from PDF content:")
+        if 'pdf_response' not in st.session_state:
+            user_input(user_question)
+        st.code(st.session_state['pdf_response'], language="text")
+
+        if st.button("Search beyond PDF content"):
+            st.subheader("Additional search results:")
+            more_search(user_question)
 
 if __name__ == "__main__":
     main()

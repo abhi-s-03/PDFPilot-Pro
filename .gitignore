@@ -1,0 +1,4 @@
+pdf/
+.env
+faiss_index/index.faiss
+faiss_index/index.pkl
