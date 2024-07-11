@@ -1,4 +1,4 @@
-# PDFPDFPilot-Pro
+# PDFPilot-Pro
 
 PDFPilot-Pro is a Streamlit application that enables users to upload multiple PDFs and ask questions based on their content. Additionally, users have the option to perform searches beyond the scope of the uploaded PDFs.
 
