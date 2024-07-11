@@ -4,7 +4,7 @@ PDFPilot-Pro is a Streamlit application that enables users to upload multiple PD
 
 ## Features
 - Upload and process multiple PDF files
-- Extract text from PDFs a
+- Extract text from PDFs
 - Answer questions based on PDF content
 - Option to search beyond the PDF content using Google Generative AI
 
