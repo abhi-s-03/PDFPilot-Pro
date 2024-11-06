@@ -63,18 +63,22 @@ def user_input(user_question):
         st.error(f"An error occurred: {str(e)}")
 
 def main():
-    # Add custom CSS at the beginning of main function
-    st.set_page_config("Chat with PDF")
+    st.set_page_config("Chat with PDF", layout="wide")
     
-    # Add custom CSS to control the output width and scrolling
+    # Updated CSS for better text wrapping and display
     st.markdown("""
         <style>
+        .stCodeBlock {
+            max-width: 100% !important;
+        }
         .stCode {
-            max-width: 100%;
-            white-space: pre-wrap;
-            word-wrap: break-word;
-            overflow-y: auto;
-            overflow-x: hidden;
+            white-space: pre-wrap !important;
+            word-break: break-word !important;
+            max-width: 100% !important;
+        }
+        code {
+            white-space: pre-wrap !important;
+            word-break: break-word !important;
         }
         </style>
     """, unsafe_allow_html=True)
@@ -96,16 +100,17 @@ def main():
 
     user_question = st.text_input("Ask Questions from the PDFs")
     if user_question:
-        # Clear previous response when a new question is asked
         if 'pdf_response' in st.session_state:
             del st.session_state['pdf_response']
         
         st.subheader("Response from PDF content:")
         user_input(user_question)
         
-        # Create a container with fixed width
-        with st.container():
-            st.code(st.session_state['pdf_response'], language="text")
+        # Display response with proper wrapping
+        st.code(
+            body=st.session_state['pdf_response'],
+            language="text"
+        )
 
         if st.button("Search beyond PDF content"):
             st.subheader("Additional search results:")
