@@ -63,7 +63,22 @@ def user_input(user_question):
         st.error(f"An error occurred: {str(e)}")
 
 def main():
+    # Add custom CSS at the beginning of main function
     st.set_page_config("Chat with PDF")
+    
+    # Add custom CSS to control the output width and scrolling
+    st.markdown("""
+        <style>
+        .stCode {
+            max-width: 100%;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            overflow-y: auto;
+            overflow-x: hidden;
+        }
+        </style>
+    """, unsafe_allow_html=True)
+    
     st.header("Chat with PDFs using PDFPilot-Pro")
 
     with st.sidebar:
@@ -81,10 +96,16 @@ def main():
 
     user_question = st.text_input("Ask Questions from the PDFs")
     if user_question:
+        # Clear previous response when a new question is asked
+        if 'pdf_response' in st.session_state:
+            del st.session_state['pdf_response']
+        
         st.subheader("Response from PDF content:")
-        if 'pdf_response' not in st.session_state:
-            user_input(user_question)
-        st.code(st.session_state['pdf_response'], language="text")
+        user_input(user_question)
+        
+        # Create a container with fixed width
+        with st.container():
+            st.code(st.session_state['pdf_response'], language="text")
 
         if st.button("Search beyond PDF content"):
             st.subheader("Additional search results:")
