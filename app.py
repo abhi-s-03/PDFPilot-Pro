@@ -49,7 +49,7 @@ def get_conversational_chain():
 def more_search(user_question):
     model = genai.GenerativeModel("gemini-pro")
     new_response = model.generate_content(user_question).text
-    st.code(new_response, language="text")
+    return new_response
 
 def user_input(user_question):
     try:
@@ -65,7 +65,6 @@ def user_input(user_question):
 def main():
     st.set_page_config("Chat with PDF", layout="wide")
     
-    # Updated CSS for better text wrapping and display
     st.markdown("""
         <style>
         .stCodeBlock {
@@ -85,6 +84,11 @@ def main():
     
     st.header("Chat with PDFs using PDFPilot-Pro")
 
+    if 'pdf_response' not in st.session_state:
+        st.session_state['pdf_response'] = ""
+    if 'additional_search_response' not in st.session_state:
+        st.session_state['additional_search_response'] = ""
+
     with st.sidebar:
         st.title("Menu:")
         docs = st.file_uploader("Upload your PDF Files and Click on the Submit Button", accept_multiple_files=True)
@@ -100,13 +104,11 @@ def main():
 
     user_question = st.text_input("Ask Questions from the PDFs")
     if user_question:
-        if 'pdf_response' in st.session_state:
-            del st.session_state['pdf_response']
+        st.session_state['additional_search_response'] = ""
         
         st.subheader("Response from PDF content:")
         user_input(user_question)
         
-        # Display response with proper wrapping
         st.code(
             body=st.session_state['pdf_response'],
             language="text"
@@ -114,7 +116,14 @@ def main():
 
         if st.button("Search beyond PDF content"):
             st.subheader("Additional search results:")
-            more_search(user_question)
+            st.session_state['additional_search_response'] = more_search(user_question)
+
+        if st.session_state['additional_search_response']:
+            st.subheader("Additional search results:")
+            st.code(
+                body=st.session_state['additional_search_response'],
+                language="text"
+            )
 
 if __name__ == "__main__":
     main()
