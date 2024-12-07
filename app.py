@@ -119,7 +119,6 @@ def main():
             st.session_state['additional_search_response'] = more_search(user_question)
 
         if st.session_state['additional_search_response']:
-            st.subheader("Additional search results:")
             st.code(
                 body=st.session_state['additional_search_response'],
                 language="text"
